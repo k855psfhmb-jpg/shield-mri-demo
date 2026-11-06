@@ -16,7 +16,7 @@
 <li><span>WebP 显示与 Canvas 读取</span><span id="status-webp" class="unknown">未检测</span></li>
 <li><span>对话框</span><span id="status-dialog" class="unknown">未检测</span></li>
 <li><span>本测试页本机存储即时写读</span><span id="status-storage" class="unknown">未检测</span></li>
-</ul><p>存储测试仅写入并删除一个随机临时键，不读取或清除 SHIELD 报告。不同本地页面的存储范围依浏览器而异；本页即时写读通过不证明工作台持久保存、关闭后恢复或不同副本相互隔离。</p><p><a href="%E6%BC%94%E7%A4%BA%E6%93%8D%E4%BD%9C%E6%8C%87%E5%8D%97.txt">打开演示操作指南</a>　<a href="index.html">返回工作台</a></p>
+</ul><p>存储测试仅写入并删除一个随机临时键，不读取或清除 SHIELD 报告。不同本地页面的存储范围依浏览器而异；本页即时写读通过不证明工作台持久保存、关闭后恢复或不同副本相互隔离。</p><p><a href="%E6%BC%94%E7%A4%BA%E6%93%8D%E4%BD%9C%E6%8C%87%E5%8D%97.txt">打开演示操作指南</a>　<a href="index.html#workspace">返回工作台</a></p>
 </main><script>
 (function(){'use strict';
 const $=id=>document.getElementById(id);function result(id,state,detail){const el=$('status-'+id);el.textContent=state+(detail?' · '+detail:'');el.className=state==='通过'?'ok':state==='失败'?'bad':'unknown'}
