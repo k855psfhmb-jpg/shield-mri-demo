@@ -1,0 +1,69 @@
+/* 演示布局：在常见投影和笔记本分辨率下同时保留影像、步骤与结果。 */
+@media screen and (min-width:1101px) {
+  .right { position:sticky; top:10px; max-height:calc(100vh - 205px); overflow-y:auto; overscroll-behavior:contain; scrollbar-color:#52717b transparent; }
+  .right:focus-within { scroll-behavior:smooth; }
+  .viewport-label,.viewport-corner,.case-import p,.signs-note,.report-actions span,.footer,.field,.report-field,.nextrow p,.step span,.tab,.phase-button,.lesion-toolbar {font-size:12px}
+  .step small,.count {font-size:10px}
+  .lesion-toolbar label {min-height:28px; padding:3px 2px}
+}
+@media screen and (min-width:701px) and (max-height:900px) {
+  .top {height:50px; padding:0 20px}
+  .mark {width:30px; height:30px}
+  .brand {font-size:14px}
+  .brand small {margin-top:1px}
+  .main {padding:10px 16px}
+  .intro {display:none}
+  .layout {gap:10px}
+  .side {padding:12px}
+  .side-note {margin:6px 0 8px; line-height:1.45}
+  .case {padding:8px; margin-bottom:3px}
+  .case-sub {margin-top:4px}
+  .case-import {margin-top:10px; padding-top:10px}
+  .case-import p {margin:7px 0; line-height:1.4}
+  .work-head {padding:10px 14px}
+  .work-title small {margin-top:3px}
+  .view-controls {padding:5px 12px}
+  .phase-toolbar,.lesion-toolbar {margin:0 12px 5px}
+  .phase-button {padding:5px 8px}
+  .viewer {margin:0 10px; padding:7px}
+  .viewport {min-height:clamp(145px,calc(100vh - 450px),330px)}
+  .viewer .shield-image-viewport .shield-media,
+  .viewer .shield-image-viewport .shield-image {max-height:clamp(145px,calc(100vh - 450px),330px)}
+  .under-view {padding:7px 3px 1px}
+  .stages {padding:10px 14px 12px}
+  .stages-title {margin-bottom:6px}
+  .step {min-height:46px; padding:6px 8px}
+  .step small {margin-bottom:2px}
+  .nextrow {margin-top:7px}
+  .primary {padding:8px 12px}
+  .right {top:10px; max-height:calc(100vh - 70px); padding:14px}
+  .result-section {padding:12px 0}
+  .footer {margin-top:8px}
+}
+@media print {.right {position:static; max-height:none; overflow:visible}}
+
+@media screen and (min-width:1101px) and (max-height:900px) { .layout {grid-template-columns:210px minmax(410px,1fr) 285px} }
+
+.shield-image-viewport .viewport-label{max-width:calc(100% - 16px);line-height:1.35;overflow-wrap:anywhere}
+
+.diagnosis-pane{display:block;place-items:normal;overflow:auto;padding:18px;background:#0d1a26;color:var(--text);max-height:330px}.diagnosis-heading{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px}.diagnosis-section{border-bottom:1px solid var(--line);padding:8px 0}.diagnosis-section strong{font-size:12px}.diagnosis-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.55;color:var(--muted);margin:6px 0}.diagnosis-note{font-size:11px;color:var(--muted);margin-top:10px}@media screen and (min-width:701px) and (max-height:900px){.diagnosis-pane{max-height:clamp(145px,calc(100vh - 450px),330px)}}
+
+@media screen and (min-width:1101px){.right .result-head{position:sticky;top:-14px;z-index:5;background:var(--surface);padding-top:4px}}
+
+@media print {dialog{display:none!important}}
+
+.viewport:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+@media screen and (min-width:701px) and (max-width:1100px){.right{max-height:none}}
+.view-controls .tab{max-width:100%;overflow-wrap:anywhere;white-space:normal;text-align:left}
+@page{margin:15mm}
+@media print{
+  html,body,.main,.layout,.right,.report,.print-report{background:#fff!important;color:#111!important;box-shadow:none!important;border:0!important;border-radius:0!important;overflow:visible!important;max-height:none!important;height:auto!important}
+  .main,.right,.report{padding:0!important;margin:0!important}
+  .print-report .print-footer{break-inside:avoid;page-break-inside:avoid}
+  .print-report h2{break-after:avoid;page-break-after:avoid}
+  .print-report p{orphans:3;widows:3}
+}
+@media print{html,body{color-scheme:light!important}}
+
+.report-field textarea.report-compact{min-height:34px;resize:vertical}
+@media print{.print-report dd,.print-report .print-footer div{white-space:pre-wrap;overflow-wrap:anywhere}}

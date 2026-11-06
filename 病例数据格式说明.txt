@@ -1,0 +1,73 @@
+SHIELD 预计算病例数据格式（第 1 版，示例不含影像或诊断）
+
+用途：每个 JSON 文件是一个病例及其预先准备的结果；不执行模型推理；病例包解析器不接受 DICOM、NIfTI、外部路径或任意格式。工作台另支持临时载入单张静态 PNG、JPEG 或 WebP，仅显示图像，不产生模型结果。请在浏览器中选中对应病例，再导入与该病例编号完全一致的病例包。三个可用病例编号分别为 CASE-01、CASE-02、CASE-03。导入不会从另一病例借用任何图像、标注或结果。
+
+packId 是病例数据集的稳定 UUID。对同一套病例数据使用相同 packId；若病例数据集更换，务必生成新的 UUID。应用按 packId、caseId 和导入 JSON 文件内容的 SHA-256 指纹隔离报告；相同编号的包只要内容发生变化，就不会自动沿用旧报告。三例应逐例分别导入。UUID 是制作者标识，不证明病例身份或来源，团队仍须检查病例、图像与结果的对应关系。建议使用可信来源，经授权和脱敏后制作文件。
+
+下面是无影像的示例结构，字段全部必填，空数组表示“待补充”，不表示阴性或无病灶。请将 packId 替换为您生成并固定保存的 UUID。
+
+{
+  "schemaVersion": 1,
+  "packId": "9dc92fc5-6bee-495d-96d0-33c8887db501",
+  "caseId": "CASE-01",
+  "sequences": [],
+  "phases": [],
+  "lesions": [],
+  "findings": [],
+  "report": {}
+}
+
+sequences 数组的示例：
+[{"id":"T2WI","label":"T2WI","images":[{"imageId":"t2-001","slice":1,"data":"data:image/png;base64,此处替换为实际图片base64","sha256":"此处替换为图像原始字节的64位SHA-256"}]}]
+
+phases 数组的 id 只能为 AP、PVP、DP，代表虚拟增强动脉期、门脉期、延迟期；images 格式与 sequences 一致。id 不可重复。不得把真实增强图像标为虚拟增强图像。图像必须是静态 PNG、JPEG 或静态 WebP 的 data URL，APNG、动画 WebP 及含 EXIF 元数据的图片会被拒绝；先校正图像像素方向并剥离 EXIF，且团队仍须逐张检查方向和标注；需通过格式签名检查；不接受外部 URL、SVG、文件路径。imageId 在该病例包中必须全局唯一，slice 为同一序列或期相内不重复的 0–1000000 整数。单张图片最多 8 MiB、最长边 8192 像素、总像素不超过 16777216；这是演示性能限制而非医学标准。每病例最多 150 张、图片总像素不超过 201326592，JSON 文件最多 35 MiB。此示例中的中文占位不能作为实际图片。
+
+图像 sha256 可省略；提供时导入器会对解码后的原始图像字节做 SHA-256 比对，任何不一致均拒绝导入。未提供或只提供部分图像的 sha256 时，图像摘要校验状态分别为 not_provided 或 partial，不能说全部校验通过；预绘制结果底图的强制引用摘要单独核对，计数记为 baseReferencesChecked。摘要仅用于检查图像字节是否一致，不证明医学真实性、病例归属或签名可信度。整个病例包会计算内容指纹用于本机报告隔离；无数字签名，指纹及摘要均不能证明来源可信或医学内容正确。
+
+lesions 数组示例（标注的 imageId 必须引用本病例包 sequences 或 phases 中的影像，不可引用预绘制结果图）：
+[{"id":"L1","location":"","sizeMm":null,"annotations":[{"imageId":"t2-001","box":[0.1,0.2,0.4,0.5],"contours":[[[0.1,0.2],[0.4,0.2],[0.3,0.5]]]}]}]
+
+box 依次为左、上、右、下；轮廓为由至少三个 [x,y] 点构成的多边形数组。所有坐标相对于所引用影像宽高归一化到 0–1，原点为图像左上角。box 可以为 null，contours 可以为空数组，但两者不能同时为空。只有匹配的 imageId、序列/期相和切片才显示其标注。示例数字仅用于说明格式，不构成病例事实。
+
+findings 数组示例：
+[{"name":"征象名称","value":null,"evidenceImageIds":[],"lesionId":null}]
+value 只能是 present（存在）、absent（不存在）、uncertain（不确定）或 null（待补充）；证据影像编号必须引用本病例包 sequences 或 phases 中的影像，不可引用预绘制结果图；lesionId 可选，非空时必须引用本包内存在的病灶，留空表示病例级征象，不自动归属某个病灶。不能把未提供的征象默认为 absent。
+
+report 可包括 exam、examNo、sex、age、examDate、examRegion、examMethod、findings、keySigns、diagnosis、recommendation、doctor、date、reviewer、reviewDate 等文本字段。缺项默认空白；审核字段空白不代表已审核。无需包含姓名、身份证号等身份信息；检查号、性别、年龄等也应根据授权及脱敏要求决定是否提供。报告内容是病例素材的一部分，加载后仍需医生复核，不自动构成临床诊断。
+
+开发接入：先加载 case-data.js；window.ShieldCaseData.emptyCases() 提供三个空槽位；await window.ShieldCaseData.loadFile(file, expectedCaseId) 一次读取病例包字节快照，用同一份字节解析及计算文件指纹，校验图像摘要并逐张检查是否能够解码。失败时抛出中文错误，不改变当前病例。推荐使用 loadFile 完成整个导入流程。调用 parse() 或 validate() 不会执行异步 SHA-256 比对、浏览器逐张解码和原始文件指纹计算，不能视为完整导入；自行集成时须额外完成 verifyIntegrity()、verifyImages() 及原始文件字节指纹计算并处理错误。返回的 report 供应用明确选择是否导入，不能覆盖已有本地编辑而不提示。
+
+报告备份仅保存在用户选择的本地位置，恢复时必须同时匹配病例编号、病例包 UUID 和文件内容指纹；更改包中的任意字节会产生不同指纹。导入素材只在当前页面内存中，刷新或关闭后需要重新导入。报告在当前设备与浏览器的本地存储中，清理浏览器数据会删除本地副本，请按需导出报告备份或打印 PDF。不同浏览器、设备及本地文件/网址之间的存储不互通。
+
+预绘制结果图片（可选，旧病例包不含此字段仍可导入）
+
+当团队已有画好标注的病灶或征象结果图时，可增加 renderedResults 数组。它与矢量 box/contours 是两种独立结果：图内已绘制的标记无法通过工作台的定位框或轮廓开关单独隐藏。制作方必须明确提供显示用底图 imageId；这只是人为声明的展示关联，不证明底图是模型唯一输入、图像同层或空间配准正确，团队必须逐图核对。
+
+示例（其中 base-001 必须是本病例的现有非增强序列或虚拟期相图像，L1 是本病例已有病灶，result-001 的图片数据需由团队替换）：
+
+"renderedResults": [{
+  "id": "render-001",
+  "stage": "detection",
+  "displayBaseImageId": "base-001",
+  "displayBaseSha256": "此处替换为底图原始字节的64位SHA-256",
+  "lesionId": "L1",
+  "findingId": null,
+  "image": {"imageId": "result-001", "slice": 1,
+            "data": "data:image/png;base64,此处替换为结果图片base64"}
+}]
+
+每项 id 不得重复，image.imageId 须在整例所有图像（含原图、虚拟期相和其他结果图）中唯一；image.slice 须与所声明底图的 slice 一致。displayBaseImageId 不得引用另一张预绘制结果图。每项必须提供 displayBaseSha256，为所引用底图原始字节的 64 位 SHA-256；导入时会重新计算底图字节并核对，即使底图未单独声明 sha256 也会执行。该校验可发现底图引用或字节意外变化，不能认证来源、影像配准或医学正确性。detection 必须关联真实存在的 lesionId，findingId 必须为 null。
+
+若 stage 为 finding，则必须提供已在 findings 中定义且不重复的非空 id 作为 findingId；结果项 lesionId 必须与该征象的 lesionId 完全一致，病例级征象可以省略 lesionId 或使用 null；其结果项的 lesionId 必须显式使用 null。旧 findings 可以不写 id；无 id 的征象不能被结果图引用。示例：findings 中 {"id":"F1","name":"征象名称","value":null,"evidenceImageIds":[],"lesionId":"L1"}，对应结果项设置 "stage":"finding","findingId":"F1","lesionId":"L1"。
+
+预绘制结果图与其他影像共同计入每例 150 张和 JSON 35 MiB 限额，并执行相同的格式、尺寸、EXIF/动画、PNG CRC、图像读取及可选摘要检查。检查只能发现部分格式问题，不能证明内容与病例同源或医学正确。截图可能含烧录身份信息；请由课题组脱敏并人工核对，切勿把真实增强影像标作虚拟增强结果。
+
+版本 1 对各层对象字段采用严格检查：含未定义字段（包括拼写错误）会拒绝导入，并提示字段名称；请修正后重试。额外的来源说明、病例元数据等请单独保管，不要塞入病例包。可选字段仍可按上文说明省略。
+
+病灶可选字段 classification 表示团队提供的该病灶预置二分类：benign（良性）、malignant（恶性）或 null（待补充）；省略等同待补充。该字段只展示预置结果，不自动推断，也不等同病理结论，须由团队核对其来源和含义。PPT 所述置信度尚无明确口径，当前不推测或自动填充。
+
+可视制作器中 imageId 在同次文件选择内绑定到图片；上移、下移只改变 slice 顺序。重新选择图片将产生新的 imageId，旧标注或证据的失效引用会阻止生成，请据文件列表重新关联；结果底图也需要重新选择。请逐图核对解剖顺序，编号不代表自动配准。
+
+可视制作器先将普通图与预绘制结果图依次读入本页内存快照，待读取完成后再核对并确认；生成时使用快照。外部修改原文件不会自动更新快照，必须重新选择。制作器对两类图片合计限制 150 张、每张 8 MiB、原始字节合计约 26.24 MiB；最终 JSON 仍有 35 MiB 上限。快照不证明原始内容来源、患者归属、方向或临床正确性。
+
+病例 JSON 必须使用有效 UTF-8 编码；编码损坏会被拒绝，请以 UTF-8 重新保存后核对内容，避免将乱码当成报告。
